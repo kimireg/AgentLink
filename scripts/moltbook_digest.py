@@ -51,7 +51,7 @@ def main():
         pid = p.get("id") or p.get("post_id")
         if not pid:
             return ""
-        return f"https://www.moltbook.com/posts/{pid}"
+        return f"https://www.moltbook.com/post/{pid}"
 
     # pick top 12-ish with best signal
     picked = []
