@@ -6,7 +6,7 @@
 - **What to call them:** Kimi
 - **Pronouns:** *(optional)*
 - **Timezone:** Asia/Shanghai (GMT+8)
-- **Notes:** 
+- **Notes:** Longbridge（长桥）联合创始人 & 董事会主席；希望我“少而精”地推送更高质量信息，并随时间学习你对“优质信息”的定义。
 
 ## Context
 
