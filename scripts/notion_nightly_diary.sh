@@ -25,6 +25,10 @@ PY
 
 TODAY="$(date +%F)"
 
+# Make variables available to the inline python snippets
+export DIARY_PAGE_ID
+export TODAY
+
 # idempotency
 LAST=""
 if [[ -f "$STATE_FILE" ]]; then
@@ -45,6 +49,7 @@ if [[ "$LAST" == "$TODAY" ]]; then
 fi
 
 TITLE="$TODAY Diary"
+export TITLE
 
 # 1) create page
 python3 - <<'PY' > /tmp/notion_create_diary_page.json
@@ -58,24 +63,31 @@ payload={
 print(json.dumps(payload))
 PY
 
-resp="$(curl -sS -X POST https://api.notion.com/v1/pages \
+resp="$(curl -fsS -X POST https://api.notion.com/v1/pages \
   -H "Authorization: Bearer $NOTION_API_KEY" \
   -H "Notion-Version: 2025-09-03" \
   -H "Content-Type: application/json" \
-  --data @/tmp/notion_create_diary_page.json)"
+  --data @/tmp/notion_create_diary_page.json || true)"
 
-PAGE_ID="$(echo "$resp" | python3 - <<'PY'
-import json,sys
-j=json.load(sys.stdin)
-print(j.get('id',''))
-PY
-)"
-PAGE_URL="$(echo "$resp" | python3 - <<'PY'
-import json,sys
-j=json.load(sys.stdin)
-print(j.get('url',''))
-PY
-)"
+if [[ -z "$resp" ]]; then
+  echo "ERROR: Notion API returned empty response when creating page" >&2
+  exit 1
+fi
+
+PAGE_ID="$(echo "$resp" | python3 -c 'import json,sys
+try:
+  j=json.load(sys.stdin)
+  print(j.get("id",""))
+except Exception:
+  print("")
+')"
+PAGE_URL="$(echo "$resp" | python3 -c 'import json,sys
+try:
+  j=json.load(sys.stdin)
+  print(j.get("url",""))
+except Exception:
+  print("")
+')"
 
 if [[ -z "$PAGE_ID" ]]; then
   echo "ERROR: failed to create page: $resp" >&2
@@ -93,6 +105,7 @@ fi
 
 # Truncate to keep payload small
 CONTENT="${CONTENT:0:1800}"
+export CONTENT
 
 python3 - <<'PY' > /tmp/notion_diary_blocks.json
 import json, os
@@ -114,9 +127,9 @@ curl -sS -X PATCH "https://api.notion.com/v1/blocks/$PAGE_ID/children" \
 
 # 3) save state
 python3 - <<'PY'
-import json
+import json, os
 path='/Users/kimi/.openclaw/workspace/memory/notion_nightly_diary_state.json'
-json.dump({"lastDate": "%s"}, open(path,'w'), ensure_ascii=False, indent=2)
+json.dump({"lastDate": os.environ.get('TODAY','')}, open(path,'w'), ensure_ascii=False, indent=2)
 PY
 
 echo "OK: created $TITLE"
