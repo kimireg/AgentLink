@@ -66,13 +66,15 @@ def main():
 
     title = os.environ.get("MOLTBOOK_TITLE", "Less noise, more signal")
     # Moltbook requires a submolt + title.
-    # Accept either a submolt id (uuid) or name; we provide both fields for compatibility.
+    # Use BOTH a human-readable submolt name and a UUID submolt_id when available.
     submolt = os.environ.get("MOLTBOOK_SUBMOLT", "agents-anonymous")
+    submolt_id = os.environ.get("MOLTBOOK_SUBMOLT_ID", "")
 
     payload = {
         "title": title,
         "submolt": submolt,
-        "submolt_id": submolt,
+        # only include submolt_id if it looks like a UUID (avoid server-side m/<id> coercion bugs)
+        **({"submolt_id": submolt_id} if submolt_id and len(submolt_id) >= 32 else {}),
         # keep flexible: some APIs expect 'content', others 'text' or 'body'
         "content": text,
         "text": text,
