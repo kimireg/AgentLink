@@ -20,6 +20,17 @@ If the machine is wiped and the Keychain item is lost, the keystore cannot be de
 
 Recommended: keep a sealed offline copy of the keystore password, or store an encrypted escrow copy (encrypted with a Kimi-controlled passphrase) alongside backups.
 
+## Escrow (encrypted password) — implemented
+- File: `~/.openclaw/wallets/jason-eth/escrow.enc`
+- Create/update escrow:
+  - `/Users/kimi/.openclaw/workspace/scripts/jason_eth_escrow_init.sh`
+- Decrypt escrow during recovery (prints password to stdout):
+  - `/Users/kimi/.openclaw/workspace/scripts/jason_eth_escrow_decrypt.sh`
+
+Security model:
+- Escrow contains ONLY the keystore password, encrypted with a passphrase Kimi controls.
+- Passphrase is never stored by Jason; without it, the escrow is useless.
+
 > Never paste the private key anywhere. The keystore password should also never be printed.
 
 ## Helper scripts
