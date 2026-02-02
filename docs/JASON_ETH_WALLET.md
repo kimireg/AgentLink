@@ -14,6 +14,12 @@
   - service: `eth.jason.keystore.pass`
   - account: `jason`
 
+### Recovery warning (important)
+File backups include the keystore file, but **do not include macOS Keychain items**.
+If the machine is wiped and the Keychain item is lost, the keystore cannot be decrypted and funds could be stuck.
+
+Recommended: keep a sealed offline copy of the keystore password, or store an encrypted escrow copy (encrypted with a Kimi-controlled passphrase) alongside backups.
+
 > Never paste the private key anywhere. The keystore password should also never be printed.
 
 ## Helper scripts
