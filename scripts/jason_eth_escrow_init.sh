@@ -40,11 +40,25 @@ fi
 # Encrypt. Use AES-256-GCM + PBKDF2.
 # Use stdin for plaintext, avoid writing to disk.
 # Store OpenSSL salted format.
-# Encrypt using a dedicated fd for the passphrase to avoid leaking it via argv.
-# Plaintext (keystore password) comes via stdin; passphrase is provided on fd 3.
-printf '%s' "$PASS" | openssl enc -aes-256-gcm -salt -pbkdf2 -iter 200000 \
-  -pass file:/dev/fd/3 -out "$ESCROW_PATH" 3<<<"$ENC1" 2>/dev/null
+# Encrypt.
+# Avoid putting the passphrase on argv. Use a temp file with 0600 perms and delete immediately.
+TMPPASS="$(mktemp)"
+chmod 600 "$TMPPASS"
+printf '%s' "$ENC1" > "$TMPPASS"
 
+# Plaintext (keystore password) comes via stdin; passphrase is read from TMPPASS.
+# If this fails, print a clear error (do not leak secrets).
+if ! printf '%s' "$PASS" | openssl enc -aes-256-gcm -salt -pbkdf2 -iter 200000 \
+  -pass file:"$TMPPASS" -out "$ESCROW_PATH"; then
+  code=$?
+  rm -f "$TMPPASS" "$ESCROW_PATH"
+  unset PASS ENC1 ENC2
+  echo "ERROR: openssl encryption failed (exit $code)." >&2
+  echo "Tip: run 'openssl version' to verify OpenSSL is available." >&2
+  exit $code
+fi
+
+rm -f "$TMPPASS"
 unset PASS ENC1 ENC2
 chmod 600 "$ESCROW_PATH"
 
