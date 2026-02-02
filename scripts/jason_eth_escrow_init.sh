@@ -14,17 +14,23 @@ mkdir -p "$(dirname "$ESCROW_PATH")"
 PASS="$(security find-generic-password -a jason -s eth.jason.keystore.pass -w)"
 
 # Prompt for encryption passphrase (Kimi controls this)
-# NOTE: when executed via non-interactive shells, `read` may not have a TTY.
-# Force reading from /dev/tty so the prompt appears when run in Terminal.
-if [[ ! -t 0 ]] && [[ ! -r /dev/tty ]]; then
-  echo "ERROR: No TTY available for passphrase prompt. Run this in an interactive Terminal." >&2
+# We MUST have an interactive TTY; otherwise bash `read` will fail silently.
+if ! tty -s 2>/dev/null; then
+  echo "ERROR: No interactive TTY detected. Please run this from a normal Terminal window." >&2
+  echo "Tip: run: bash /Users/kimi/.openclaw/workspace/scripts/jason_eth_escrow_init.sh" >&2
   exit 1
 fi
 
-read -r -s -p "Set escrow encryption passphrase (Kimi controls; not stored): " ENC1 < /dev/tty
-printf '\n' > /dev/tty
-read -r -s -p "Confirm passphrase: " ENC2 < /dev/tty
-printf '\n' > /dev/tty
+TTY_DEV="/dev/tty"
+if [[ ! -r "$TTY_DEV" ]]; then
+  echo "ERROR: Cannot access $TTY_DEV (device not configured). Try running in a fresh Terminal tab." >&2
+  exit 1
+fi
+
+read -r -s -p "Set escrow encryption passphrase (Kimi controls; not stored): " ENC1 < "$TTY_DEV"
+printf '\n' > "$TTY_DEV"
+read -r -s -p "Confirm passphrase: " ENC2 < "$TTY_DEV"
+printf '\n' > "$TTY_DEV"
 
 if [[ "$ENC1" != "$ENC2" ]]; then
   echo "ERROR: passphrases do not match" >&2
