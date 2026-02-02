@@ -1,0 +1,28 @@
+# Jason ETH Wallet (Mainnet)
+
+## What was created
+- Wallet type: Foundry keystore (encrypted JSON), managed via `cast`
+- Chain: Ethereum mainnet
+- RPC (current): https://ethereum.publicnode.com
+
+## Address (public)
+- `0x1181A37Bf11896Cc678f0B81412760133814238a`
+
+## Where secrets live
+- **Keystore file (encrypted):** `~/.openclaw/wallets/jason-eth/keystore/jason-eth`
+- **Keystore password:** stored in **macOS Keychain**
+  - service: `eth.jason.keystore.pass`
+  - account: `jason`
+
+> Never paste the private key anywhere. The keystore password should also never be printed.
+
+## Helper scripts
+- Balance:
+  - `/Users/kimi/.openclaw/workspace/scripts/jason_eth_balance.sh`
+- Send (broadcasts to mainnet):
+  - `/Users/kimi/.openclaw/workspace/scripts/jason_eth_send.sh <to> <value>`
+  - Example: `/Users/kimi/.openclaw/workspace/scripts/jason_eth_send.sh 0xabc... 0.0001ether`
+
+## Notes
+- Cloudflare RPC (`https://cloudflare-eth.com`) currently returns `-32603 Internal error` for balance calls; switched to `https://ethereum.publicnode.com`.
+- For safety, we should implement an approval gate before allowing any automatic sends.
