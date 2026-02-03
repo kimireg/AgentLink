@@ -53,6 +53,8 @@ description: Use Google Gemini web (gemini.google.com) inside OpenClaw "openclaw
      ` /var/folders/.../T/playwright-artifacts-*/<uuid> `
    - This temp file may disappear after browser restart or cleanup, so copy it out quickly.
 3. Copy the file to `~/Downloads/` and give it a proper extension based on `file` output.
+4. Send via Telegram as **file/document** (not photo) to preserve full size:
+   - `message` with `path` + `filename`.
 
 **Concrete working example**
 - Download landed at: `/var/folders/.../T/playwright-artifacts-*/<uuid>`
@@ -72,7 +74,9 @@ write theData to f
 close access f
 ```
 
-3. Send as Telegram attachment (message tool `path=<file>`).
+3. Send as Telegram **file/document** attachment to preserve full size.
+   - Use `message` with `path` + `filename` (keep real extension: .png/.webp/.jpg)
+   - Avoid sending as “photo” when user asks for full size (Telegram may compress photos).
 
 ### Window/page screenshot fallback
 If user asks for the *whole Gemini window/page*, use browser screenshot and then copy the resulting file to `~/Downloads/` and send it.
