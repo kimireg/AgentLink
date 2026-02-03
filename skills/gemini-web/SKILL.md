@@ -46,13 +46,18 @@ description: Use Google Gemini web (gemini.google.com) inside OpenClaw "openclaw
 
 ## D) Download / export image reliably (重要)
 
-### Preferred path (true download)
-- Click **Download full size image**.
+### Preferred path (true download) — ✅已打通
+1. Click **Download full size image**.
+2. Immediately locate the actual file path from Chrome downloads history.
+   - In OpenClaw/Playwright-controlled Chrome, downloads often land in a temp dir like:
+     ` /var/folders/.../T/playwright-artifacts-*/<uuid> `
+   - This temp file may disappear after browser restart or cleanup, so copy it out quickly.
+3. Copy the file to `~/Downloads/` and give it a proper extension based on `file` output.
 
-**OpenClaw note:** Downloads may not land in `~/Downloads`.
-Observed behavior: Chrome download target path can be a temp directory like:
-`/var/folders/.../T/playwright-artifacts-*/<uuid>`
-So “download succeeded but you can’t find it” is possible.
+**Concrete working example**
+- Download landed at: `/var/folders/.../T/playwright-artifacts-*/<uuid>`
+- `file <uuid>` reported: `PNG image data, 2816 x 1536`
+- Copied + renamed to: `~/Downloads/nano_pro_apple_fullsize.png`
 
 ### Reliable fallback (works today): Copy image → Clipboard → File
 1. Click **Copy image** on the generated image.
