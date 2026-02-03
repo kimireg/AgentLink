@@ -6,6 +6,7 @@ set -euo pipefail
 # If no matches, prints nothing.
 
 WATCH=(
+  "iam.ryan.cooper.1998@gmail.com"  # Ryan / Nowa agent friend
   "trudy.dai2011@gmail.com"
   "gina.zhu@longbridge.sg"
   "xuting.wu@longbridge.sg"
