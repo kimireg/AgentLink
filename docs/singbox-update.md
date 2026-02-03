@@ -33,6 +33,9 @@
 2) 对 3 个模板分别合并更新
 3) 输出 3 个带日期命名的 JSON，并发回 Telegram 附件
 
+## 配置文件（已固定为“今天这三份模板”）
+- `data/singbox_update_config.json`
+
 ## 脚本位置
 - `scripts/singbox_update.py`
 

@@ -246,32 +246,60 @@ def update_from_subscription(
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--url", required=True)
-    ap.add_argument("--template-share", required=True)
-    ap.add_argument("--template-air", required=True)
-    ap.add_argument("--template-pro", required=True)
+    ap.add_argument("--config", help="JSON config file with subscription_url + template paths")
+    ap.add_argument("--url")
+    ap.add_argument("--template-share")
+    ap.add_argument("--template-air")
+    ap.add_argument("--template-pro")
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--date", default=str(date.today()))
     ap.add_argument("--suffix", default="1.14-ready-v2.1")
     args = ap.parse_args()
 
-    outdir = Path(args.outdir).expanduser().resolve()
+    cfg: Dict[str, Any] = {}
+    if args.config:
+        cfg = load_json(Path(args.config))
+
+    url = args.url or cfg.get("subscription_url")
+    templates = cfg.get("templates", {}) if isinstance(cfg.get("templates"), dict) else {}
+    template_share = args.template_share or templates.get("share_7_8")
+    template_air = args.template_air or templates.get("air_5_9")
+    template_pro = args.template_pro or templates.get("pro_5_9")
+
+    outdir_val = args.outdir
+    if args.outdir == "." and isinstance(cfg.get("output"), dict) and cfg["output"].get("outdir"):
+        outdir_val = cfg["output"].get("outdir")
+
+    suffix_val = args.suffix
+    if args.suffix == "1.14-ready-v2.1" and isinstance(cfg.get("output"), dict) and cfg["output"].get("suffix"):
+        suffix_val = cfg["output"].get("suffix")
+
+    missing = [k for k,v in {
+        "url": url,
+        "template_share": template_share,
+        "template_air": template_air,
+        "template_pro": template_pro,
+    }.items() if not v]
+    if missing:
+        ap.error("missing required args/config values: " + ", ".join(missing))
+
+    outdir = Path(outdir_val).expanduser().resolve()
     outdir.mkdir(parents=True, exist_ok=True)
 
-    sub = fetch_subscription(args.url)
+    sub = fetch_subscription(str(url))
     sub_outbounds = [o for o in sub.get("outbounds", []) if isinstance(o, dict) and o.get("tag")]
     sub_by_tag: Dict[str, Dict[str, Any]] = {o["tag"]: o for o in sub_outbounds}
 
-    t_share = load_json(Path(args.template_share))
-    t_air = load_json(Path(args.template_air))
-    t_pro = load_json(Path(args.template_pro))
+    t_share = load_json(Path(str(template_share)))
+    t_air = load_json(Path(str(template_air)))
+    t_pro = load_json(Path(str(template_pro)))
 
     updated_share = update_from_subscription(t_share, sub_by_tag, keep_private=False)
     updated_air = update_from_subscription(t_air, sub_by_tag, keep_private=True)
     updated_pro = update_from_subscription(t_pro, sub_by_tag, keep_private=True)
 
     d = args.date
-    suf = args.suffix
+    suf = suffix_val
 
     p_share = outdir / f"sing-box_7.8-Air_share_{d}_{suf}.json"
     p_air = outdir / f"sing-box_5.9-Air_private_{d}_{suf}.json"
