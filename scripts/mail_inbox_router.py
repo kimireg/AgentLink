@@ -90,8 +90,8 @@ end try
 
 def list_unread():
     # returns list of dicts: {id:int, fromEmail:str, subject:str, dateReceived:str, messageId:str}
-    osa = f'''
-set maxN to {MAX_UNREAD}
+    # Build AppleScript without Python f-string pitfalls.
+    osa = "set maxN to %d\n" % MAX_UNREAD + r'''
 try
   tell application "Mail"
     set theAccount to first account whose name is "iCloud"
@@ -101,7 +101,7 @@ try
     if c = 0 then return "[]"
     if c > maxN then set c to maxN
 
-    set items to {{}}
+    set outLines to {}
     repeat with i from 1 to c
       set m to item i of unreadMsgs
       set fromTxt to sender of m
@@ -130,11 +130,11 @@ try
       set escDt to my esc(dt)
       set escMsgid to my esc(msgid)
 
-      set end of items to "{{\"id\":" & mid & ",\"fromEmail\":\"" & escFrom & "\",\"subject\":\"" & escSubj & "\",\"dateReceived\":\"" & escDt & "\",\"messageId\":\"" & escMsgid & "\"}}"
+      set end of outLines to "{\"id\":" & mid & ",\"fromEmail\":\"" & escFrom & "\",\"subject\":\"" & escSubj & "\",\"dateReceived\":\"" & escDt & "\",\"messageId\":\"" & escMsgid & "\"}"
     end repeat
 
     set text item delimiters of AppleScript to ","
-    set outText to "[" & (items as string) & "]"
+    set outText to "[" & (outLines as string) & "]"
     set text item delimiters of AppleScript to ""
     return outText
   end tell
@@ -164,6 +164,8 @@ end replace
 
     cp = sh(["osascript", "-e", osa], timeout=90, check=False)
     txt = (cp.stdout or "").strip()
+    if not txt:
+        raise RuntimeError("ERROR: empty output from osascript")
     if txt.startswith("ERROR("):
         raise RuntimeError(txt)
     return json.loads(txt)
