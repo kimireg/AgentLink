@@ -3,14 +3,15 @@
 
 Goals (per Kimi):
 - deterministic periodic checking (cron)
-- polite + timely handling for friends threads
+- polite + timely handling for friends threads (Jason 🍎 writes the replies)
 - mark as read after handling to avoid repeats
 - if Mail.app seems stale, restart and re-check
+- qwen is allowed only to organize/summarize the thread and brief Kimi
 
 This script:
 1) Lists unread messages from a sender allowlist.
 2) Uses a local state file to de-dup processing even if Mail.app read status rolls back.
-3) Drafts a reply using qwen agent (cheap) with strict constraints.
+3) Drafts a reply using *main* agent with strict constraints.
 4) Sends via scripts/mail_send_retry.sh (with Mail restart + sent confirmation).
 5) Marks the original message as read via scripts/mail_mark_read_ids.sh.
 
@@ -233,26 +234,26 @@ def draft_reply(from_email: str, subject: str, content: str) -> str:
         + content_clean
     )
 
-    # Use qwen agent for cost; fallback to a simple acknowledgement if it fails.
+    # Per Kimi: the email is for Jason 🍎, so draft MUST be done by main.
+    # qwen may only be used for organization/summarization to brief Kimi.
     try:
         cp = sh(
             [
                 "openclaw",
                 "agent",
                 "--agent",
-                "qwen",
+                "main",
                 "--message",
                 prompt,
                 "--timeout",
-                "180",
+                "220",
             ],
-            timeout=220,
+            timeout=260,
             check=True,
         )
         out = (cp.stdout or "").strip()
         if not out:
             raise RuntimeError("empty draft")
-        # Basic guard: ensure signature present
         if "— Kimi / Jason" not in out:
             out = out.rstrip() + "\n\n— Kimi / Jason 🍎\n"
         return out
