@@ -108,7 +108,7 @@ try
     if c = 0 then return "[]"
     if c > maxN then set c to maxN
 
-    set items to {}
+    set outLines to {}
     repeat with i from 1 to c
       set m to item i of unreadMsgs
       set fromTxt to sender of m
@@ -145,11 +145,11 @@ try
       set escMsgid to my esc(msgid)
       set escBody to my esc(bodyTxt)
 
-      set end of items to "{\"id\":" & mid & ",\"fromEmail\":\"" & escFrom & "\",\"subject\":\"" & escSubj & "\",\"dateReceived\":\"" & escDt & "\",\"messageId\":\"" & escMsgid & "\",\"content\":\"" & escBody & "\"}"
+      set end of outLines to "{\"id\":" & mid & ",\"fromEmail\":\"" & escFrom & "\",\"subject\":\"" & escSubj & "\",\"dateReceived\":\"" & escDt & "\",\"messageId\":\"" & escMsgid & "\",\"content\":\"" & escBody & "\"}"
     end repeat
 
     set text item delimiters of AppleScript to ","
-    set outText to "[" & (items as string) & "]"
+    set outText to "[" & (outLines as string) & "]"
     set text item delimiters of AppleScript to ""
     return outText
   end tell
