@@ -328,6 +328,57 @@ def main():
             "mailId": mid,
         }
 
+        # Optional: brief Kimi about Ryan thread using qwen (summary only; Jason writes the email).
+        if from_email.lower().strip() == "iam.ryan.cooper.1998@gmail.com":
+            try:
+                already = processed[key].get("briefSentAt")
+                if not already:
+                    brief_prompt = (
+                        "你是 qwen agent。请把下面这封邮件往来整理成一张给 Kimi 的中文提示卡（少而精）。\n"
+                        "要求：\n"
+                        "- 标题一行：📬 Ryan 对话更新\n"
+                        "- 3–5 条要点：Ryan 说了什么（核心观点/问题）\n"
+                        "- 1–2 条：Jason 已如何回复/采取动作（只基于提供的回复内容）\n"
+                        "- 1 条：下一步建议/需要 Kimi 关注什么（如无则写“无需介入”）\n"
+                        "- 不要复述冗长引用；不超过 15 行。\n"
+                        "- 输出纯文本，不要 markdown。\n\n"
+                        "【Ryan 来信】\n" + (m.get("content") or "")[:6000] +
+                        "\n\n【Jason 回复】\n" + body[:4000]
+                    )
+                    cp2 = sh(
+                        [
+                            "openclaw",
+                            "agent",
+                            "--agent",
+                            "qwen",
+                            "--message",
+                            brief_prompt,
+                            "--timeout",
+                            "120",
+                        ],
+                        timeout=160,
+                        check=True,
+                    )
+                    brief_txt = (cp2.stdout or "").strip()
+                    if brief_txt:
+                        sh(
+                            [
+                                "openclaw",
+                                "message",
+                                "send",
+                                "--target",
+                                "469144235",
+                                "--message",
+                                brief_txt,
+                            ],
+                            timeout=40,
+                            check=True,
+                        )
+                        processed[key]["briefSentAt"] = now_iso()
+            except Exception:
+                # best-effort; do not fail mail processing
+                pass
+
         out_lines.append(f"{from_email} | {subject} | {date_rcv} | replied+marked_read")
 
         # keep processed bounded
