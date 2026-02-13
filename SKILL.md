@@ -283,6 +283,22 @@ nvm use 22
 rm -rf node_modules && npm install
 ```
 
+### VPN / Proxy Interference (Surge Enhanced Mode)
+**Symptom:** `tls handshake eof` or `service unavailable` on XMTP gRPC calls.
+
+**Root cause:** Surge for Mac in **Enhanced Mode** can intercept and forward all system traffic via a virtual NIC. XMTP uses **gRPC over HTTP/2 + TLS 1.3**, which is more sensitive than normal HTTPS and may fail during handshake under proxy interception.
+
+**Failure chain:**
+`Node.js -> gRPC TLS handshake -> Surge virtual NIC interception -> HTTP/2 + TLS 1.3 negotiation interrupted -> EOF`
+
+**Mitigation:**
+1. Temporarily disable Surge Enhanced Mode, then retry.
+2. Or configure XMTP traffic as direct/bypass in Surge.
+3. Re-test with:
+```bash
+node send.mjs --info
+```
+
 ### "Cannot find module '@xmtp/agent-sdk'"
 **原因：** 未安装依赖。
 **解决：** `cd skills/xmtp && npm install`
