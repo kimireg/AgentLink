@@ -1,0 +1,5 @@
+# AgentLink Local Agent SDK
+anthropic==0.27.0
+pynacl==1.5.0
+requests==2.31.0
+python-dotenv==1.0.0
