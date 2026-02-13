@@ -17,6 +17,7 @@
  */
 
 import { createAgent } from "./lib/client.mjs";
+import { IdentifierKind } from "@xmtp/node-sdk";
 
 const args = process.argv.slice(2);
 
@@ -70,8 +71,15 @@ Examples:
     }
 
     try {
-      const canMessage = await agent.client.canMessage([targetAddress]);
-      const reachable = canMessage.get(targetAddress) || false;
+      const identifier = {
+        identifier: targetAddress.toLowerCase(),
+        identifierKind: IdentifierKind.Ethereum,
+      };
+      const canMessage = await agent.client.canMessage([identifier]);
+      const reachable =
+        canMessage.get(targetAddress.toLowerCase()) ||
+        canMessage.get(targetAddress) ||
+        false;
       console.log(
         JSON.stringify({
           address: targetAddress,
@@ -104,8 +112,8 @@ Examples:
     // Create or get existing DM conversation
     const conversation = await agent.createDmWithAddress(targetAddress);
 
-    // Send the message (v1.1 API: conversation.sendText)
-    await conversation.sendText(message);
+    // Send the message (DM API)
+    await conversation.send(message);
 
     console.log(
       JSON.stringify({

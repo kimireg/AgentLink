@@ -14,6 +14,28 @@
  */
 
 import { createAgent } from "./lib/client.mjs";
+import { IdentifierKind } from "@xmtp/node-sdk";
+
+function safeStringify(value) {
+  return JSON.stringify(value, (_, v) =>
+    typeof v === "bigint" ? v.toString() : v
+  );
+}
+
+function nsToIso(ns) {
+  if (ns === null || ns === undefined) return null;
+  let ms;
+  if (typeof ns === "bigint") {
+    ms = Number(ns / 1000000n);
+  } else if (typeof ns === "number") {
+    ms = Math.floor(ns / 1_000_000);
+  } else {
+    const parsed = Number(ns.toString());
+    if (!Number.isFinite(parsed)) return null;
+    ms = Math.floor(parsed / 1_000_000);
+  }
+  return new Date(ms).toISOString();
+}
 
 const args = process.argv.slice(2);
 
@@ -49,9 +71,7 @@ Usage:
       for (const conv of conversations) {
         const info = {
           id: conv.id,
-          createdAt: conv.createdAtNs
-            ? new Date(Number(conv.createdAtNs / 1000000n)).toISOString()
-            : null,
+          createdAt: nsToIso(conv.createdAtNs),
         };
 
         // Try to get members
@@ -74,7 +94,7 @@ Usage:
       }
 
       console.log(
-        JSON.stringify({ conversations: convList, count: convList.length })
+        safeStringify({ conversations: convList, count: convList.length })
       );
     } catch (err) {
       console.error(`❌ List failed: ${err.message}`);
@@ -94,30 +114,16 @@ Usage:
   }
 
   try {
-    // Sync and find conversation with address
-    await agent.client.conversations.sync();
-    const conversations = await agent.client.conversations.list();
-
-    // Find conversation matching the address
-    let targetConv = null;
-    for (const conv of conversations) {
-      try {
-        const members = await conv.members();
-        for (const m of members) {
-          if (m.addresses?.some((a) => a.toLowerCase() === targetAddress.toLowerCase())) {
-            targetConv = conv;
-            break;
-          }
-        }
-      } catch {
-        continue;
-      }
-      if (targetConv) break;
-    }
+    // Sync and resolve DM by identifier (more reliable than members() for DMs)
+    await agent.client.conversations.syncAll();
+    const targetConv = await agent.client.conversations.getDmByIdentifier({
+      identifier: targetAddress.toLowerCase(),
+      identifierKind: IdentifierKind.Ethereum,
+    });
 
     if (!targetConv) {
       console.log(
-        JSON.stringify({
+        safeStringify({
           address: targetAddress,
           messages: [],
           count: 0,
@@ -135,14 +141,15 @@ Usage:
     const recentMessages = messages.slice(-limit).map((msg) => ({
       id: msg.id,
       senderInboxId: msg.senderInboxId,
-      content: msg.content,
-      sentAt: msg.sentAtNs
-        ? new Date(Number(msg.sentAtNs / 1000000n)).toISOString()
-        : null,
+      content:
+        typeof msg.content === "string"
+          ? msg.content
+          : safeStringify(msg.content),
+      sentAt: nsToIso(msg.sentAtNs),
     }));
 
     console.log(
-      JSON.stringify({
+      safeStringify({
         address: targetAddress,
         conversationId: targetConv.id,
         messages: recentMessages,

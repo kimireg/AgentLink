@@ -276,6 +276,12 @@ rm -rf node_modules && npm install
 node send.mjs --info
 ```
 
+Enable SDK debug logs for deeper diagnosis:
+
+```bash
+XMTP_FORCE_DEBUG=true XMTP_FORCE_DEBUG_LEVEL=debug node send.mjs --info
+```
+
 ### VPN / Proxy Interference (Surge Enhanced Mode)
 
 **Symptom:** `tls handshake eof` or `service unavailable` on XMTP gRPC calls.
@@ -292,6 +298,18 @@ node send.mjs --info
 ```bash
 node send.mjs --info
 ```
+
+### Local backend test (code path isolation)
+
+Use a local XMTP backend to isolate code issues from remote TLS/network issues:
+
+```bash
+XMTP_ENV=local node send.mjs --info
+```
+
+Interpretation:
+- `local` works, `dev/production` fails → network/proxy/remote endpoint issue
+- `local` also fails → likely local config/runtime/script issue
 
 ### Missing SDK module
 

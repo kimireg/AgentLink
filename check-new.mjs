@@ -18,6 +18,20 @@
 
 import { createAgent } from "./lib/client.mjs";
 
+function safeStringify(value) {
+  return JSON.stringify(value, (_, v) =>
+    typeof v === "bigint" ? v.toString() : v
+  );
+}
+
+function nsToMs(ns) {
+  if (ns === null || ns === undefined) return 0;
+  if (typeof ns === "bigint") return Number(ns / 1000000n);
+  if (typeof ns === "number") return Math.floor(ns / 1_000_000);
+  const parsed = Number(ns.toString());
+  return Number.isFinite(parsed) ? Math.floor(parsed / 1_000_000) : 0;
+}
+
 const args = process.argv.slice(2);
 
 async function main() {
@@ -46,40 +60,43 @@ async function main() {
         const messages = await conv.messages();
 
         for (const msg of messages) {
-          // Skip our own messages
-          if (msg.senderInboxId === agent.inboxId) continue;
-
-          // Check timestamp
-          const sentAt = msg.sentAtNs
-            ? Number(msg.sentAtNs / 1000000n)
-            : 0;
-          if (sentAt < sinceTime) continue;
-
-          // Resolve sender
-          let senderAddress = msg.senderInboxId;
           try {
-            const inboxState =
-              await agent.client.preferences.inboxStateFromInboxIds([
-                msg.senderInboxId,
-              ]);
-            if (inboxState?.[0]?.identifiers?.[0]?.identifier) {
-              senderAddress = inboxState[0].identifiers[0].identifier;
-            }
-          } catch {
-            // fallback to inboxId
-          }
+            // Skip our own messages only if inboxId is available
+            if (agent.inboxId && msg.senderInboxId === agent.inboxId) continue;
 
-          newMessages.push({
-            from: senderAddress,
-            content:
-              typeof msg.content === "string"
-                ? msg.content
-                : JSON.stringify(msg.content),
-            conversationId: conv.id,
-            timestamp: sentAt
-              ? new Date(sentAt).toISOString()
-              : null,
-          });
+            // Check timestamp
+            const sentAt = nsToMs(msg.sentAtNs);
+            if (sentAt < sinceTime) continue;
+
+            // Resolve sender
+            let senderAddress = msg.senderInboxId;
+            try {
+              const inboxState =
+                await agent.client.preferences.inboxStateFromInboxIds([
+                  msg.senderInboxId,
+                ]);
+              if (inboxState?.[0]?.identifiers?.[0]?.identifier) {
+                senderAddress = inboxState[0].identifiers[0].identifier;
+              }
+            } catch {
+              // fallback to inboxId
+            }
+
+            newMessages.push({
+              from: senderAddress,
+              content:
+                typeof msg.content === "string"
+                  ? msg.content
+                  : safeStringify(msg.content),
+              conversationId: conv.id,
+              timestamp: sentAt
+                ? new Date(sentAt).toISOString()
+                : null,
+            });
+          } catch {
+            // Skip malformed message only, keep other messages
+            continue;
+          }
         }
       } catch {
         // Skip conversations that fail to sync
@@ -94,7 +111,7 @@ async function main() {
     );
 
     console.log(
-      JSON.stringify({
+      safeStringify({
         hasNew: newMessages.length > 0,
         messages: newMessages,
         count: newMessages.length,

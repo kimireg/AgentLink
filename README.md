@@ -119,6 +119,11 @@ Try this sequence:
 2. Retry `node send.mjs --info`
 3. Test both `XMTP_ENV=dev` and `XMTP_ENV=production`
 4. Check VPN/proxy interception (especially Surge for Mac)
+5. Enable SDK debug logs for root-cause visibility:
+
+```bash
+XMTP_FORCE_DEBUG=true XMTP_FORCE_DEBUG_LEVEL=debug node send.mjs --info
+```
 
 ---
 
@@ -158,6 +163,18 @@ Re-test:
 ```bash
 node send.mjs --info
 ```
+
+---
+
+### Isolate network issues with local XMTP backend
+
+If you need to separate **code bugs** from **remote network issues**, run against a local XMTP backend:
+
+```bash
+XMTP_ENV=local node send.mjs --info
+```
+
+If `local` works but `dev/production` fails, your code path is likely fine and the issue is remote-network/TLS/proxy related.
 
 ---
 
