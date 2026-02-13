@@ -120,20 +120,37 @@ node history.mjs 0xPartnerAddress --limit 20
 4. 检查 VPN/代理软件（尤其 Surge for Mac）
 5. 若仍失败，等待 XMTP 网络恢复并重试
 
-### VPN 注意（重要）
+### VPN Notice (Surge Enhanced Mode)
 
-如果你使用 **Surge for Mac**，开启 **Enhanced Mode（增强模式）** 可能导致 XMTP 连接失败。
+If you use **Surge for Mac**, be aware that **Enhanced Mode** can break XMTP gRPC TLS handshakes.
 
-原因链路（已实测）：
-- Node.js 发起 gRPC over TLS
-- Surge 虚拟网卡接管系统流量
-- 代理转发过程中打断 HTTP/2 + TLS 1.3 握手
-- 最终表现为 `tls handshake eof` / `service unavailable`
+Based on Surge behavior, `skip-proxy` under Enhanced Mode does **not** fully bypass Surge for this traffic path. The correct fix is adding a **DIRECT rule** at the top of `[Rule]`:
 
-**建议做法：**
-- 暂时关闭 Surge Enhanced Mode 后再测
-- 或将 XMTP 相关域名流量直连（不走增强模式）
-- 复测命令：`node send.mjs --info`
+```ini
+[Rule]
+# XMTP gRPC - avoid Enhanced Mode TLS handshake interference
+DOMAIN-SUFFIX,xmtp.network,DIRECT
+# ... keep other rules unchanged
+```
+
+Why this works:
+- `DOMAIN-SUFFIX,xmtp.network` matches:
+  - `grpc.dev.xmtp.network`
+  - `grpc.production.xmtp.network`
+  - and future `*.xmtp.network` subdomains
+- Matched traffic goes **DIRECT** (no proxy server hop), reducing HTTP/2 + TLS 1.3 handshake interruption risk.
+
+If your Surge profile is managed and you cannot edit `[Rule]` directly:
+1. Open Surge menu → **Rules**
+2. Add rule: **DOMAIN-SUFFIX**
+3. Value: `xmtp.network`
+4. Policy: **DIRECT**
+5. Move this rule to the **top** (rule order is top-down)
+
+Quick re-test:
+```bash
+node send.mjs --info
+```
 
 ---
 
