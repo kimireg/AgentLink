@@ -1,9 +1,12 @@
 {
   "name": "xmtp-agent-skill",
-  "version": "1.0.0",
-  "description": "XMTP decentralized messaging skill for AI agents",
+  "version": "2.0.0",
+  "description": "XMTP decentralized messaging skill for OpenClaw agents (Agent SDK)",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "send": "node send.mjs",
     "listen": "node listener.mjs",
@@ -12,6 +15,6 @@
     "gen:keys": "node -e \"const c=require('crypto');console.log('XMTP_WALLET_KEY=0x'+c.randomBytes(32).toString('hex'));console.log('XMTP_DB_ENCRYPTION_KEY=0x'+c.randomBytes(32).toString('hex'));\""
   },
   "dependencies": {
-    "@xmtp/agent-sdk": "^1.1.4"
+    "@xmtp/agent-sdk": "^1.1.16"
   }
 }

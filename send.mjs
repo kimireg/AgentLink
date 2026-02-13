@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * send.mjs — Send an XMTP message to an ETH address
- * 
+ * send.mjs — Send an XMTP message to an ETH address (v2)
+ *
+ * Uses @xmtp/agent-sdk (Agent.createFromEnv pattern).
+ *
  * Usage:
  *   node send.mjs <address> <message>     Send a message
  *   node send.mjs --check <address>       Check if address is reachable on XMTP
  *   node send.mjs --info                  Show this agent's XMTP address
- * 
+ *
  * Examples:
- *   node send.mjs 0x1234...abcd "Hello from my agent!"
+ *   node send.mjs 0x1234...abcd "Hello from Jason 🍎"
  *   node send.mjs --check 0x1234...abcd
  *   node send.mjs 0x1234...abcd '{"protocol":"agent-msg","type":"query","body":"What is ETH price?"}'
  */
@@ -19,10 +21,10 @@ import { createAgent } from "./lib/client.mjs";
 const args = process.argv.slice(2);
 
 async function main() {
-  // Parse arguments
+  // Help
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
     console.log(`
-XMTP Send — Agent Messaging Tool
+XMTP Send v2 — Agent Messaging Tool
 
 Usage:
   node send.mjs <address> <message>     Send a text message
@@ -43,10 +45,19 @@ Examples:
 
   // --info: Show this agent's address
   if (args[0] === "--info") {
-    console.log(JSON.stringify({
+    const info = {
       address: agent.address,
       env: process.env.XMTP_ENV || "dev",
-    }));
+      sdk: "@xmtp/agent-sdk v2",
+    };
+    // Also try to get test URL for dev network
+    try {
+      const { getTestUrl } = await import("@xmtp/agent-sdk/debug");
+      info.testUrl = getTestUrl(agent.client);
+    } catch {
+      // debug module may not be available
+    }
+    console.log(JSON.stringify(info));
     process.exit(0);
   }
 
@@ -57,15 +68,17 @@ Examples:
       console.error("❌ Usage: node send.mjs --check <address>");
       process.exit(1);
     }
-    
+
     try {
       const canMessage = await agent.client.canMessage([targetAddress]);
       const reachable = canMessage.get(targetAddress) || false;
-      console.log(JSON.stringify({
-        address: targetAddress,
-        reachable,
-        network: process.env.XMTP_ENV || "dev",
-      }));
+      console.log(
+        JSON.stringify({
+          address: targetAddress,
+          reachable,
+          network: process.env.XMTP_ENV || "dev",
+        })
+      );
     } catch (err) {
       console.error(`❌ Check failed: ${err.message}`);
       process.exit(1);
@@ -90,24 +103,40 @@ Examples:
   try {
     // Create or get existing DM conversation
     const conversation = await agent.createDmWithAddress(targetAddress);
-    
-    // Send the message
+
+    // Send the message (v1.1 API: conversation.sendText)
     await conversation.sendText(message);
-    
-    console.log(JSON.stringify({
-      status: "sent",
-      to: targetAddress,
-      from: agent.address,
-      message_preview: message.length > 100 ? message.slice(0, 100) + "..." : message,
-      timestamp: new Date().toISOString(),
-    }));
+
+    console.log(
+      JSON.stringify({
+        status: "sent",
+        to: targetAddress,
+        from: agent.address,
+        message_preview:
+          message.length > 100 ? message.slice(0, 100) + "..." : message,
+        timestamp: new Date().toISOString(),
+      })
+    );
   } catch (err) {
     console.error(`❌ Send failed: ${err.message}`);
-    
-    // Common error: address not on XMTP
-    if (err.message.includes("not on the network") || err.message.includes("canMessage")) {
-      console.error(`   Hint: The address may not have registered on XMTP yet.`);
-      console.error(`   Check with: node send.mjs --check ${targetAddress}`);
+
+    // Common error hints
+    if (
+      err.message.includes("not on the network") ||
+      err.message.includes("canMessage")
+    ) {
+      console.error(
+        `   Hint: The address may not have registered on XMTP yet.`
+      );
+      console.error(
+        `   Check with: node send.mjs --check ${targetAddress}`
+      );
+    }
+    if (err.message.includes("TLS") || err.message.includes("handshake")) {
+      console.error(
+        `   Hint: TLS error. Ensure you're using Node 22 LTS (not Node 25+).`
+      );
+      console.error(`   Fix: nvm use 22`);
     }
     process.exit(1);
   }

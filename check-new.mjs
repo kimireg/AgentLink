@@ -1,86 +1,121 @@
 #!/usr/bin/env node
 
 /**
- * check-new.mjs — One-shot XMTP new message checker
- * 
- * Designed for cron jobs or heartbeat integration.
- * Syncs conversations, checks for unread messages, outputs summary, exits.
- * 
+ * check-new.mjs — One-shot check for new XMTP messages (v2)
+ *
+ * Designed for cron jobs. Connects, syncs, checks for new messages,
+ * outputs any unread messages, then exits.
+ *
  * Usage:
- *   node check-new.mjs              Check for new messages
- *   node check-new.mjs --since 60   Check messages from last 60 minutes (default: 30)
- * 
+ *   node check-new.mjs                    Check for new messages
+ *   node check-new.mjs --since 15         Only messages from last 15 minutes (default)
+ *   node check-new.mjs --since 60         Last 60 minutes
+ *
  * Output:
- *   {"unread":2,"messages":[...]}    If new messages found
- *   {"unread":0,"messages":[]}       If no new messages
- * 
- * Exit codes:
- *   0 - Success (regardless of message count)
- *   1 - Error
+ *   {"hasNew":true,"messages":[...],"count":3}
+ *   {"hasNew":false,"messages":[],"count":0}
  */
 
 import { createAgent } from "./lib/client.mjs";
 
 const args = process.argv.slice(2);
-const sinceIdx = args.indexOf("--since");
-const sinceMinutes = sinceIdx !== -1 ? parseInt(args[sinceIdx + 1]) || 30 : 30;
 
 async function main() {
+  // Parse --since argument (minutes)
+  const sinceIdx = args.indexOf("--since");
+  const sinceMinutes =
+    sinceIdx !== -1 ? parseInt(args[sinceIdx + 1], 10) || 15 : 15;
+  const sinceTime = Date.now() - sinceMinutes * 60 * 1000;
+
+  console.error("🔌 Connecting to XMTP network...");
   const agent = await createAgent();
-  
-  // Sync all conversations from network
-  await agent.client.conversations.sync();
-  
-  const conversations = await agent.client.conversations.list();
-  const cutoff = Date.now() - (sinceMinutes * 60 * 1000);
-  const cutoffNs = BigInt(cutoff) * 1000000n;
-  
-  const newMessages = [];
-  
-  for (const conv of conversations) {
-    try {
-      await conv.sync();
-      const messages = await conv.messages({ limit: 10 });
-      
-      for (const msg of messages) {
-        // Skip messages from self
-        if (msg.senderInboxId === agent.client.inboxId) continue;
-        
-        // Check if message is within time window
-        if (msg.sentAtNs && msg.sentAtNs > cutoffNs) {
+  console.error(
+    `✅ Connected as ${agent.address}, checking last ${sinceMinutes} min...`
+  );
+
+  try {
+    // Sync conversations from network
+    await agent.client.conversations.sync();
+    const conversations = await agent.client.conversations.list();
+
+    const newMessages = [];
+
+    for (const conv of conversations) {
+      try {
+        await conv.sync();
+        const messages = await conv.messages();
+
+        for (const msg of messages) {
+          // Skip our own messages
+          if (msg.senderInboxId === agent.inboxId) continue;
+
+          // Check timestamp
+          const sentAt = msg.sentAtNs
+            ? Number(msg.sentAtNs / 1000000n)
+            : 0;
+          if (sentAt < sinceTime) continue;
+
+          // Resolve sender
           let senderAddress = msg.senderInboxId;
           try {
-            const state = await agent.client.preferences.inboxStateFromInboxIds([msg.senderInboxId]);
-            if (state?.[0]?.identifiers?.[0]?.identifier) {
-              senderAddress = state[0].identifiers[0].identifier;
+            const inboxState =
+              await agent.client.preferences.inboxStateFromInboxIds([
+                msg.senderInboxId,
+              ]);
+            if (inboxState?.[0]?.identifiers?.[0]?.identifier) {
+              senderAddress = inboxState[0].identifiers[0].identifier;
             }
-          } catch { /* use inboxId as fallback */ }
-          
+          } catch {
+            // fallback to inboxId
+          }
+
           newMessages.push({
             from: senderAddress,
-            content: typeof msg.content === 'string' 
-              ? (msg.content.length > 200 ? msg.content.slice(0, 200) + "..." : msg.content)
-              : "[non-text content]",
+            content:
+              typeof msg.content === "string"
+                ? msg.content
+                : JSON.stringify(msg.content),
             conversationId: conv.id,
-            sentAt: new Date(Number(msg.sentAtNs / 1000000n)).toISOString(),
+            timestamp: sentAt
+              ? new Date(sentAt).toISOString()
+              : null,
           });
         }
+      } catch {
+        // Skip conversations that fail to sync
+        continue;
       }
-    } catch {
-      // Skip conversations that fail to sync
     }
+
+    // Sort by timestamp (newest first)
+    newMessages.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    console.log(
+      JSON.stringify({
+        hasNew: newMessages.length > 0,
+        messages: newMessages,
+        count: newMessages.length,
+        checkedSinceMinutes: sinceMinutes,
+        agentAddress: agent.address,
+        timestamp: new Date().toISOString(),
+      })
+    );
+  } catch (err) {
+    console.error(`❌ Check failed: ${err.message}`);
+    console.log(
+      JSON.stringify({
+        hasNew: false,
+        messages: [],
+        count: 0,
+        error: err.message,
+        timestamp: new Date().toISOString(),
+      })
+    );
+    process.exit(1);
   }
-  
-  // Sort by time, newest first
-  newMessages.sort((a, b) => b.sentAt.localeCompare(a.sentAt));
-  
-  console.log(JSON.stringify({
-    agent_address: agent.address,
-    checked_at: new Date().toISOString(),
-    since_minutes: sinceMinutes,
-    unread: newMessages.length,
-    messages: newMessages,
-  }, null, 2));
 
   process.exit(0);
 }
