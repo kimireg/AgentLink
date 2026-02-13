@@ -1,27 +1,28 @@
 # XMTP Skill v2 (Agent-to-Agent Encrypted Messaging)
 
-这是 Jason 的 XMTP 通信 skill（v2），用于让 AI Agent 之间像“打电话”一样直接通信。
+This skill gives your agent a direct, encrypted communication channel over XMTP.
+Think of an ETH address as an agent “phone number”.
 
-- Protocol: XMTP
-- SDK: `@xmtp/agent-sdk` (v1.1.16+)
-- Runtime: **Node 22 LTS**（必须）
+- **Protocol:** XMTP
+- **SDK:** `@xmtp/agent-sdk` (v1.1.16+)
+- **Runtime:** **Node.js 22 LTS required**
 
 ---
 
-## 1) What this does
+## 1) What this skill enables
 
-- 用 ETH 地址作为通信身份（地址即“号码”）
-- 端到端加密消息
-- 支持：发送、监听、历史查询、定时拉取新消息
-- 可与其他 Agent 或 XMTP 客户端互通
+- Wallet-based identity for agents (ETH address)
+- End-to-end encrypted messaging
+- Agent-to-agent messaging and interoperability with XMTP clients
+- CLI workflows for send / listen / history / periodic checks
 
 ---
 
 ## 2) Requirements
 
 - Node.js 22 LTS
-- ETH 私钥（`0x` 开头 64 hex）
-- 持久化存储 `data/`（避免 installation 配额浪费）
+- An ETH private key (`0x` + 64 hex chars)
+- Persistent `data/` directory (important for installation quota)
 
 ```bash
 node -v   # should be v22.x.x
@@ -41,13 +42,13 @@ npm install
 
 ## 4) Configure
 
-复制模板并填写：
+Copy template and fill values:
 
 ```bash
 cp .env.example .env
 ```
 
-`.env` 示例：
+Example `.env`:
 
 ```env
 XMTP_ENV=dev
@@ -56,49 +57,49 @@ XMTP_DB_ENCRYPTION_KEY=0xYOUR_64_HEX_KEY
 XMTP_DB_PATH=./data/xmtp-db
 ```
 
-生成 DB key：
+Generate DB encryption key:
 
 ```bash
 node -e "console.log('0x' + require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-> 注意：你也可以使用已有 ETH 钱包私钥。不要提交 `.env` 到 GitHub。
+> Never commit `.env` to GitHub.
 
 ---
 
 ## 5) Usage
 
-### 查看本机地址（是否完成注册）
+### Show your XMTP address (and validate registration)
 
 ```bash
 node send.mjs --info
 ```
 
-### 检查对方是否可达
+### Check if a target address is reachable on XMTP
 
 ```bash
 node send.mjs --check 0xPartnerAddress
 ```
 
-### 发送消息
+### Send a message
 
 ```bash
 node send.mjs 0xPartnerAddress "Hello from Jason 🍎"
 ```
 
-### 监听消息（长驻）
+### Start listener (long-running)
 
 ```bash
 node listener.mjs
 ```
 
-### 检查最近新消息（一次性）
+### One-shot inbox check
 
 ```bash
 node check-new.mjs
 ```
 
-### 查询历史
+### Query history
 
 ```bash
 node history.mjs --list
@@ -111,20 +112,28 @@ node history.mjs 0xPartnerAddress --limit 20
 
 ### `tls handshake eof` / `service unavailable`
 
-这通常是 XMTP 网络侧可用性问题，不一定是代码 bug。
+This is often an XMTP network availability or TLS-path issue, not necessarily a code bug.
 
-建议：
-1. 确保 Node 22 LTS
-2. 再试 `node send.mjs --info`
-3. 切换 `XMTP_ENV=dev` / `production` 各试一次
-4. 检查 VPN/代理软件（尤其 Surge for Mac）
-5. 若仍失败，等待 XMTP 网络恢复并重试
+Try this sequence:
+1. Use Node 22 LTS
+2. Retry `node send.mjs --info`
+3. Test both `XMTP_ENV=dev` and `XMTP_ENV=production`
+4. Check VPN/proxy interception (especially Surge for Mac)
+
+---
 
 ### VPN Notice (Surge Enhanced Mode)
 
-If you use **Surge for Mac**, be aware that **Enhanced Mode** can break XMTP gRPC TLS handshakes.
+If you use **Surge for Mac**, **Enhanced Mode** can break XMTP gRPC TLS handshakes.
 
-Based on Surge behavior, `skip-proxy` under Enhanced Mode does **not** fully bypass Surge for this traffic path. The correct fix is adding a **DIRECT rule** at the top of `[Rule]`:
+Observed failure chain:
+- Node.js starts gRPC-over-TLS
+- Surge virtual NIC intercepts all system traffic
+- HTTP/2 + TLS 1.3 negotiation gets interrupted
+- Result: `tls handshake eof` / `service unavailable`
+
+`skip-proxy` alone may not fully bypass this path under Enhanced Mode.
+Use a **DIRECT rule** at the top of your Surge `[Rule]` section:
 
 ```ini
 [Rule]
@@ -134,38 +143,34 @@ DOMAIN-SUFFIX,xmtp.network,DIRECT
 ```
 
 Why this works:
-- `DOMAIN-SUFFIX,xmtp.network` matches:
-  - `grpc.dev.xmtp.network`
-  - `grpc.production.xmtp.network`
-  - and future `*.xmtp.network` subdomains
-- Matched traffic goes **DIRECT** (no proxy server hop), reducing HTTP/2 + TLS 1.3 handshake interruption risk.
+- It matches `grpc.dev.xmtp.network`, `grpc.production.xmtp.network`, and future `*.xmtp.network` subdomains
+- Matched traffic goes DIRECT (no proxy hop)
 
-If your Surge profile is managed and you cannot edit `[Rule]` directly:
-1. Open Surge menu → **Rules**
-2. Add rule: **DOMAIN-SUFFIX**
+If your profile is managed (cannot edit config file directly), do this in Surge UI:
+1. Menu → Rules
+2. Add rule type: `DOMAIN-SUFFIX`
 3. Value: `xmtp.network`
-4. Policy: **DIRECT**
-5. Move this rule to the **top** (rule order is top-down)
+4. Policy: `DIRECT`
+5. Move it to the top (rules are matched top-down)
 
-Quick re-test:
+Re-test:
+
 ```bash
 node send.mjs --info
 ```
 
 ---
 
-## 7) Security
+## 7) Security and operations
 
-- `.env` 必须保密（私钥）
-- `data/` 必须持久化（不要随意删除）
-- 不要把 `node_modules/`、`.env`、`data/` 提交到仓库
+- Keep `.env` private
+- Persist `data/` (do not casually delete)
+- Do not commit `.env`, `node_modules/`, or `data/`
 
 ---
 
-## 8) Repo
-
-AgentLink repo:
+## 8) Repository
 
 - https://github.com/kimireg/AgentLink
 
-本 skill 由 Jason 维护，用于 Agent 间加密通信实验与生产化验证。
+This repository contains the current XMTP skill implementation and docs used by Jason for agent communication rollout.
