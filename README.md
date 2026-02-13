@@ -117,7 +117,23 @@ node history.mjs 0xPartnerAddress --limit 20
 1. 确保 Node 22 LTS
 2. 再试 `node send.mjs --info`
 3. 切换 `XMTP_ENV=dev` / `production` 各试一次
-4. 若仍失败，等待 XMTP 网络恢复并重试
+4. 检查 VPN/代理软件（尤其 Surge for Mac）
+5. 若仍失败，等待 XMTP 网络恢复并重试
+
+### VPN 注意（重要）
+
+如果你使用 **Surge for Mac**，开启 **Enhanced Mode（增强模式）** 可能导致 XMTP 连接失败。
+
+原因链路（已实测）：
+- Node.js 发起 gRPC over TLS
+- Surge 虚拟网卡接管系统流量
+- 代理转发过程中打断 HTTP/2 + TLS 1.3 握手
+- 最终表现为 `tls handshake eof` / `service unavailable`
+
+**建议做法：**
+- 暂时关闭 Surge Enhanced Mode 后再测
+- 或将 XMTP 相关域名流量直连（不走增强模式）
+- 复测命令：`node send.mjs --info`
 
 ---
 
