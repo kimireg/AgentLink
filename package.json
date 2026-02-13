@@ -1,0 +1,17 @@
+{
+  "name": "xmtp-agent-skill",
+  "version": "1.0.0",
+  "description": "XMTP decentralized messaging skill for AI agents",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "send": "node send.mjs",
+    "listen": "node listener.mjs",
+    "history": "node history.mjs",
+    "check": "node check-new.mjs",
+    "gen:keys": "node -e \"const c=require('crypto');console.log('XMTP_WALLET_KEY=0x'+c.randomBytes(32).toString('hex'));console.log('XMTP_DB_ENCRYPTION_KEY=0x'+c.randomBytes(32).toString('hex'));\""
+  },
+  "dependencies": {
+    "@xmtp/agent-sdk": "^1.1.4"
+  }
+}
