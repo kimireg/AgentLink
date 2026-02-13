@@ -34,7 +34,7 @@ npm -v
 ## 3) Install
 
 ```bash
-cd skills/xmtp-skill
+cd skills/xmtp
 npm install
 ```
 
@@ -104,6 +104,19 @@ node check-new.mjs
 ```bash
 node history.mjs --list
 node history.mjs 0xPartnerAddress --limit 20
+```
+
+### Block / Unblock an address (consent control)
+
+```bash
+# Block
+node block.mjs 0xAddress
+
+# Check consent status
+node block.mjs --status 0xAddress
+
+# Unblock
+node unblock.mjs 0xAddress
 ```
 
 ---
@@ -183,6 +196,19 @@ If `local` works but `dev/production` fails, your code path is likely fine and t
 - Keep `.env` private
 - Persist `data/` (do not casually delete)
 - Do not commit `.env`, `node_modules/`, or `data/`
+- Do not hardcode personal wallet addresses/private keys in docs/scripts
+- Keep `.gitignore` strict for local DB artifacts (`*.db3*`, `xmtp-*.db3*`)
+
+### Privacy checklist before pushing to GitHub
+
+Run this before every push:
+
+```bash
+grep -RniE "(0x[a-fA-F0-9]{64}|XMTP_WALLET_KEY=0x[0-9a-fA-F]{64}|PRIVATE_KEY|SECRET|PASSWORD)" . \
+  --exclude-dir=node_modules --exclude=.env --exclude=package-lock.json
+```
+
+If anything sensitive appears, remove/redact before commit.
 
 ---
 

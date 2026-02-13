@@ -1,5 +1,10 @@
 node_modules/
 .env
 data/
+.DS_Store
 *.sqlite
 *.sqlite3
+*.db3
+*.db3-*
+xmtp-*.db3*
+xmtp-dev-*.db3*

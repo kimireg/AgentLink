@@ -12,6 +12,9 @@
     "listen": "node listener.mjs",
     "history": "node history.mjs",
     "check": "node check-new.mjs",
+    "block": "node block.mjs",
+    "unblock": "node unblock.mjs",
+    "block:status": "node block.mjs --status",
     "gen:keys": "node -e \"const c=require('crypto');console.log('XMTP_WALLET_KEY=0x'+c.randomBytes(32).toString('hex'));console.log('XMTP_DB_ENCRYPTION_KEY=0x'+c.randomBytes(32).toString('hex'));\""
   },
   "dependencies": {

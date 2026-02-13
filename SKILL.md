@@ -56,7 +56,7 @@ If you upgrade from v1, you must:
 ## Installation
 
 ```bash
-cd skills/xmtp-skill
+cd skills/xmtp
 npm install
 ```
 
@@ -100,26 +100,26 @@ Deleting DB files consumes installation quota.
 
 ```bash
 # Send to an ETH address
-node skills/xmtp-skill/send.mjs "0xPartnerAddress" "Hello from Jason 🍎"
+node skills/xmtp/send.mjs "0xPartnerAddress" "Hello from Jason 🍎"
 
 # Check if target is reachable on XMTP
-node skills/xmtp-skill/send.mjs --check "0xPartnerAddress"
+node skills/xmtp/send.mjs --check "0xPartnerAddress"
 
 # Show this agent address
-node skills/xmtp-skill/send.mjs --info
+node skills/xmtp/send.mjs --info
 ```
 
 Shell wrapper:
 
 ```bash
-skills/xmtp-skill/xmtp-send.sh "0xPartnerAddress" "Hello"
-skills/xmtp-skill/xmtp-send.sh --check "0xPartnerAddress"
+skills/xmtp/xmtp-send.sh "0xPartnerAddress" "Hello"
+skills/xmtp/xmtp-send.sh --check "0xPartnerAddress"
 ```
 
 ### 2) Listen for incoming messages (long-running)
 
 ```bash
-node skills/xmtp-skill/listener.mjs
+node skills/xmtp/listener.mjs
 ```
 
 Listener behavior:
@@ -137,16 +137,29 @@ Example output:
 
 ```bash
 # list conversations
-node skills/xmtp-skill/history.mjs --list
+node skills/xmtp/history.mjs --list
 
 # read recent messages with one address
-node skills/xmtp-skill/history.mjs "0xPartnerAddress" --limit 20
+node skills/xmtp/history.mjs "0xPartnerAddress" --limit 20
 ```
 
 ### 4) One-shot new message check (cron-friendly)
 
 ```bash
-node skills/xmtp-skill/check-new.mjs
+node skills/xmtp/check-new.mjs
+```
+
+### 5) Block / Unblock an address (consent control)
+
+```bash
+# Block an address
+node skills/xmtp/block.mjs 0xAddress
+
+# Check current consent state
+node skills/xmtp/block.mjs --status 0xAddress
+
+# Unblock an address
+node skills/xmtp/unblock.mjs 0xAddress
 ```
 
 ---
@@ -185,20 +198,20 @@ Add this to your `TOOLS.md`:
 ```markdown
 ## 📡 XMTP (Decentralized Messaging)
 * **Purpose:** Agent-to-agent encrypted communication via Ethereum identity
-* **Send:** `node skills/xmtp-skill/send.mjs "0xAddress" "message"`
-* **Check reachability:** `node skills/xmtp-skill/send.mjs --check "0xAddress"`
-* **Listen:** `node skills/xmtp-skill/listener.mjs` (long-running)
-* **History:** `node skills/xmtp-skill/history.mjs "0xAddress"`
-* **Skill docs:** `skills/xmtp-skill/SKILL.md`
+* **Send:** `node skills/xmtp/send.mjs "0xAddress" "message"`
+* **Check reachability:** `node skills/xmtp/send.mjs --check "0xAddress"`
+* **Listen:** `node skills/xmtp/listener.mjs` (long-running)
+* **History:** `node skills/xmtp/history.mjs "0xAddress"`
+* **Skill docs:** `skills/xmtp/SKILL.md`
 * **⚠️ Node 22 LTS required:** `nvm use 22`
-* **⚠️ Persist DB files:** do not delete `skills/xmtp-skill/data/`
+* **⚠️ Persist DB files:** do not delete `skills/xmtp/data/`
 ```
 
 Cron pattern (recommended):
 
 ```bash
 # check new XMTP messages periodically
-node skills/xmtp-skill/check-new.mjs
+node skills/xmtp/check-new.mjs
 ```
 
 ---
@@ -207,7 +220,7 @@ node skills/xmtp-skill/check-new.mjs
 
 To onboard another agent team quickly:
 1. Ensure Node 22 LTS
-2. Copy `skills/xmtp-skill/` into their workspace
+2. Copy `skills/xmtp/` into their workspace
 3. Run `npm install`
 4. Configure `.env` with their own key
 5. Exchange addresses and send ping/pong test
@@ -216,10 +229,10 @@ Quick test:
 
 ```bash
 # Agent A
-node skills/xmtp-skill/send.mjs "0xAgentB" "ping from Agent A"
+node skills/xmtp/send.mjs "0xAgentB" "ping from Agent A"
 
 # Agent B
-node skills/xmtp-skill/send.mjs "0xAgentA" "pong from Agent B"
+node skills/xmtp/send.mjs "0xAgentA" "pong from Agent B"
 ```
 
 You can also test manually with: https://xmtp.chat
@@ -241,7 +254,7 @@ You can also test manually with: https://xmtp.chat
 ## File map
 
 ```text
-skills/xmtp-skill/
+skills/xmtp/
 ├── SKILL.md
 ├── README.md
 ├── package.json
@@ -318,7 +331,7 @@ Interpretation:
 **Fix:**
 
 ```bash
-cd skills/xmtp-skill
+cd skills/xmtp
 npm install
 ```
 
